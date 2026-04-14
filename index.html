@@ -1,93 +1,112 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>My Calendar</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Calendar</title>
 
-  <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background: linear-gradient(135deg, #eef2ff, #f8fafc);
-      margin: 0;
-      padding: 20px;
-    }
+<style>
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #eef2ff, #f8fafc);
+  margin: 0;
+  padding: 10px;
+}
 
-    h1 {
-      text-align: center;
-      color: #333;
-    }
+h1 {
+  text-align: center;
+}
 
-    #calendar {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 10px;
-      max-width: 600px;
-      margin: 20px auto;
-    }
+.header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 10px;
+}
 
-    .day {
-      background: white;
-      border-radius: 12px;
-      padding: 15px 0;
-      text-align: center;
-      cursor: pointer;
-      font-weight: bold;
-      transition: 0.2s;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    }
+button {
+  padding: 8px 15px;
+  border: none;
+  background: #4f46e5;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+}
 
-    .day:hover {
-      background: #6366f1;
-      color: white;
-      transform: translateY(-3px);
-    }
+#calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  max-width: 600px;
+  margin: 0 auto;
+}
 
-    .day.active {
-      background: #4f46e5;
-      color: white;
-    }
+/* 曜日 */
+.weekday {
+  text-align: center;
+  font-weight: bold;
+}
 
-    .day.has-memo {
-      border: 2px solid #4f46e5;
-    }
+/* 日付 */
+.day {
+  background: white;
+  border-radius: 10px;
+  padding: 10px 0;
+  text-align: center;
+  cursor: pointer;
+  font-size: 14px;
+}
 
-    .memo-container {
-      max-width: 600px;
-      margin: 0 auto;
-      background: white;
-      padding: 20px;
-      border-radius: 16px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-    }
+/* 今日 */
+.today {
+  background: #22c55e;
+  color: white;
+}
 
-    textarea {
-      width: 100%;
-      height: 120px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      padding: 10px;
-      resize: none;
-    }
+/* 選択 */
+.active {
+  background: #4f46e5;
+  color: white;
+}
 
-    button {
-      margin-top: 10px;
-      padding: 10px 20px;
-      border: none;
-      background: #4f46e5;
-      color: white;
-      border-radius: 10px;
-      cursor: pointer;
-    }
+/* メモあり */
+.has-memo {
+  border: 2px solid #4f46e5;
+}
 
-    button:hover {
-      background: #4338ca;
-    }
-  </style>
+.memo-container {
+  max-width: 600px;
+  margin: 15px auto;
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+}
+
+textarea {
+  width: 100%;
+  height: 100px;
+}
+
+/* 📱 スマホ対応 */
+@media (max-width: 600px) {
+  .day {
+    font-size: 12px;
+    padding: 8px 0;
+  }
+}
+</style>
 </head>
 
 <body>
 
 <h1>📅 My Calendar</h1>
+
+<div class="header">
+  <button onclick="prevMonth()">◀</button>
+  <div id="currentMonth"></div>
+  <button onclick="nextMonth()">▶</button>
+</div>
 
 <div id="calendar"></div>
 
@@ -97,62 +116,100 @@
 </div>
 
 <script>
-  const calendar = document.getElementById("calendar");
-  let selectedDate = null;
+let currentDate = new Date();
+let selectedDate = null;
 
-  // カレンダー生成（1〜31日）
-  function createCalendar() {
-    for (let day = 1; day <= 31; day++) {
-      const div = document.createElement("div");
-      div.textContent = day;
-      div.classList.add("day");
+const calendar = document.getElementById("calendar");
+const currentMonthText = document.getElementById("currentMonth");
 
-      div.onclick = () => selectDate(day, div);
+function renderCalendar() {
+  calendar.innerHTML = "";
 
-      // メモがある日をチェック
-      if (localStorage.getItem(day)) {
-        div.classList.add("has-memo");
-      }
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
 
-      calendar.appendChild(div);
+  currentMonthText.textContent = `${year}年 ${month + 1}月`;
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const lastDate = new Date(year, month + 1, 0).getDate();
+
+  const weekdays = ["日","月","火","水","木","金","土"];
+
+  // 曜日表示
+  weekdays.forEach(day => {
+    const div = document.createElement("div");
+    div.textContent = day;
+    div.classList.add("weekday");
+    calendar.appendChild(div);
+  });
+
+  // 空白
+  for (let i = 0; i < firstDay; i++) {
+    calendar.appendChild(document.createElement("div"));
+  }
+
+  for (let day = 1; day <= lastDate; day++) {
+    const div = document.createElement("div");
+    div.textContent = day;
+    div.classList.add("day");
+
+    const fullDate = `${year}-${month+1}-${day}`;
+
+    // 今日
+    const today = new Date();
+    if (
+      day === today.getDate() &&
+      month === today.getMonth() &&
+      year === today.getFullYear()
+    ) {
+      div.classList.add("today");
     }
-  }
 
-  function selectDate(day, element) {
-    selectedDate = day;
-
-    document.querySelectorAll(".day").forEach(d => d.classList.remove("active"));
-    element.classList.add("active");
-
-    loadMemo(day);
-  }
-
-  function saveMemo() {
-    if (!selectedDate) {
-      alert("日付を選択してください");
-      return;
+    // メモチェック
+    if (localStorage.getItem(fullDate)) {
+      div.classList.add("has-memo");
     }
 
-    const memo = document.getElementById("memo").value;
-    localStorage.setItem(selectedDate, memo);
+    div.onclick = () => {
+      selectedDate = fullDate;
 
-    // メモありマーク更新
-    document.querySelectorAll(".day").forEach(d => {
-      const day = d.textContent;
-      if (localStorage.getItem(day)) {
-        d.classList.add("has-memo");
-      }
-    });
+      document.querySelectorAll(".day").forEach(d => d.classList.remove("active"));
+      div.classList.add("active");
 
-    alert("保存しました！");
+      loadMemo(fullDate);
+    };
+
+    calendar.appendChild(div);
+  }
+}
+
+function saveMemo() {
+  if (!selectedDate) {
+    alert("日付を選択してください");
+    return;
   }
 
-  function loadMemo(day) {
-    const memo = localStorage.getItem(day);
-    document.getElementById("memo").value = memo || "";
-  }
+  const memo = document.getElementById("memo").value;
+  localStorage.setItem(selectedDate, memo);
+  renderCalendar();
+}
 
-  createCalendar();
+function loadMemo(date) {
+  const memo = localStorage.getItem(date);
+  document.getElementById("memo").value = memo || "";
+}
+
+function prevMonth() {
+  currentDate.setMonth(currentDate.getMonth() - 1);
+  renderCalendar();
+}
+
+function nextMonth() {
+  currentDate.setMonth(currentDate.getMonth() + 1);
+  renderCalendar();
+}
+
+renderCalendar();
 </script>
 
 </body>
